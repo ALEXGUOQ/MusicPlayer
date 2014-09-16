@@ -1,34 +1,56 @@
 package com.zyh.musicplayer;
 
-import android.app.Activity;
-import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import java.util.ArrayList;
+import java.util.List;
 
-public class MainActivity extends Activity {
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.view.ViewPager;
+
+import com.zyh.musicplayer.fragment.MusiclistFragment;
+
+public class MainActivity extends FragmentActivity {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		init();
 	}
 
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.main, menu);
-		return true;
+	private ViewPager viewpager;
+	private MyPagerAdapter adpater;
+	private List<Fragment> fragments;
+
+	private void init() {
+
+		fragments = new ArrayList<>();
+		fragments.add(new MusiclistFragment());
+
+		viewpager = (ViewPager) findViewById(R.id.viewpager);
+		adpater = new MyPagerAdapter(getSupportFragmentManager());
+		viewpager.setAdapter(adpater);
 	}
 
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
-		int id = item.getItemId();
-		if (id == R.id.action_settings) {
-			return true;
+	private class MyPagerAdapter extends FragmentPagerAdapter {
+
+		public MyPagerAdapter(FragmentManager fm) {
+			super(fm);
 		}
-		return super.onOptionsItemSelected(item);
+
+		@Override
+		public Fragment getItem(int arg0) {
+			return fragments.get(arg0);
+		}
+
+		@Override
+		public int getCount() {
+			return fragments.size();
+		}
+
 	}
+
 }
