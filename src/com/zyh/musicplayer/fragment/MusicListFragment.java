@@ -3,12 +3,21 @@ package com.zyh.musicplayer.fragment;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
@@ -16,9 +25,12 @@ import android.widget.TextView;
 
 import com.zyh.musicplayer.R;
 import com.zyh.musicplayer.domain.Music;
+import com.zyh.musicplayer.service.ScanSdFilesReceiver;
+import com.zyh.musicplayer.util.ConstantValue;
+import com.zyh.musicplayer.util.HandlerManager;
 import com.zyh.musicplayer.util.MediaUtils;
 
-public class MusiclistFragment extends Fragment {
+public class MusicListFragment extends Fragment {
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -29,18 +41,55 @@ public class MusiclistFragment extends Fragment {
 
 	private ListView lv_music;
 	private MusicListAdapte adapter;
+	private ScanSdFilesReceiver scanReceiver;
+
+	private Handler handler = new Handler() {
+		public void handleMessage(Message msg) {
+
+		};
+	};
+
+	private ItemSelectedListener itemSelectedListener;
+
+	@Override
+	public void onAttach(Activity activity) {
+		super.onAttach(activity);
+		itemSelectedListener = (ItemSelectedListener) activity;
+	}
 
 	private void init(View view) {
+
+		handler = HandlerManager.getHandler();
+		// 初始化当前音乐位置，状态
+		MediaUtils.CURRENTPOS = 0;
+		MediaUtils.PLAYSTATE = ConstantValue.OPTION_PAUSE;
+
 		songList = new ArrayList<Music>();
 		lv_music = (ListView) view.findViewById(R.id.lv_music);
 		adapter = new MusicListAdapte();
 		lv_music.setAdapter(adapter);
+		lv_music.setOnItemClickListener(new OnItemClickListener() {
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				itemSelectedListener.onItemSelectedListener(position);
+				adapter.notifyDataSetChanged();
+			}
+		});
 
-		new initData().execute();// 异步更新列表
-
+		new initData().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);// 异步更新列表
 	}
 
-	private List<Music> songList;
+	public void refresh() {
+		IntentFilter filter = new IntentFilter(Intent.ACTION_MEDIA_SCANNER_STARTED);
+		filter.addAction(Intent.ACTION_MEDIA_SCANNER_FINISHED);
+		filter.addDataScheme("file");
+		scanReceiver = new ScanSdFilesReceiver();
+		getActivity().registerReceiver(scanReceiver, filter);
+		getActivity().sendBroadcast(
+				new Intent(Intent.ACTION_MEDIA_MOUNTED, Uri.parse("file://" + Environment.getExternalStorageDirectory())));
+	}
+
+	public static List<Music> songList;
 
 	class initData extends AsyncTask<Void, Void, Void> {
 		@Override
@@ -69,11 +118,11 @@ public class MusiclistFragment extends Fragment {
 			TextView musicName = (TextView) convertView.findViewById(R.id.musicName);
 			TextView musicAritst = (TextView) convertView.findViewById(R.id.musicAritst);
 			Music music = songList.get(position);
+			musicplaystate.setVisibility(position == MediaUtils.CURRENTPOS ? View.VISIBLE : View.INVISIBLE);
 			musiclistPos.setText(position + ".");
 			musicTime.setText(MediaUtils.formatTime(Integer.parseInt(music.getDuration())));
 			musicAritst.setText(music.getArtist());
 			musicName.setText(music.getTitle());
-
 			return convertView;
 		}
 
@@ -87,4 +136,7 @@ public class MusiclistFragment extends Fragment {
 
 	}
 
+	public interface ItemSelectedListener {
+		public void onItemSelectedListener(int position);
+	}
 }

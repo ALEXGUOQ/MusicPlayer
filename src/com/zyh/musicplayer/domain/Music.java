@@ -8,6 +8,11 @@ public class Music {
 	private String path;
 	private String duration;
 
+	@Override
+	public String toString() {
+		return "Music [title=" + title + ", artist=" + artist + ", id=" + id + ", path=" + path + ", duration=" + duration + "]";
+	}
+
 	public String getTitle() {
 		return title;
 	}

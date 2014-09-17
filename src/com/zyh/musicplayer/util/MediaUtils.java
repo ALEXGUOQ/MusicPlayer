@@ -11,6 +11,9 @@ import com.zyh.musicplayer.domain.Music;
 
 public class MediaUtils {
 
+	public static int PLAYSTATE;
+	public static int CURRENTPOS;
+
 	public static List<Music> getSongList(Context context) {
 		List<Music> songList = new ArrayList<Music>();
 		Cursor cursor = context.getContentResolver().query(
