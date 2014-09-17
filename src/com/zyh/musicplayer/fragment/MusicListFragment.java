@@ -29,6 +29,7 @@ import com.zyh.musicplayer.service.ScanSdFilesReceiver;
 import com.zyh.musicplayer.util.ConstantValue;
 import com.zyh.musicplayer.util.HandlerManager;
 import com.zyh.musicplayer.util.MediaUtils;
+import com.zyh.musicplayer.util.ServiceUtils;
 
 public class MusicListFragment extends Fragment {
 
@@ -55,15 +56,20 @@ public class MusicListFragment extends Fragment {
 	public void onAttach(Activity activity) {
 		super.onAttach(activity);
 		itemSelectedListener = (ItemSelectedListener) activity;
+		if (ServiceUtils.isRunning(getActivity(), "com.zyh.musicplayer.service.MediaService")) {
+			System.out.println("服务正在运行...");
+		} else {
+			System.out.println("服务挂了...");
+			// 初始化当前音乐位置，状态
+			MediaUtils.CURRENTPOS = 0;
+			MediaUtils.PLAYSTATE = ConstantValue.OPTION_STOP;
+		}
+		System.out.println("当前歌曲位置：" + MediaUtils.CURRENTPOS);
+		System.out.println("当前歌曲状态：" + MediaUtils.PLAYSTATE);
 	}
 
 	private void init(View view) {
-
 		handler = HandlerManager.getHandler();
-		// 初始化当前音乐位置，状态
-		MediaUtils.CURRENTPOS = 0;
-		MediaUtils.PLAYSTATE = ConstantValue.OPTION_PAUSE;
-
 		songList = new ArrayList<Music>();
 		lv_music = (ListView) view.findViewById(R.id.lv_music);
 		adapter = new MusicListAdapte();
@@ -79,7 +85,10 @@ public class MusicListFragment extends Fragment {
 		new initData().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);// 异步更新列表
 	}
 
-	public void refresh() {
+	/**
+	 * 刷新列表
+	 */
+	public void refreshList() {
 		IntentFilter filter = new IntentFilter(Intent.ACTION_MEDIA_SCANNER_STARTED);
 		filter.addAction(Intent.ACTION_MEDIA_SCANNER_FINISHED);
 		filter.addDataScheme("file");
@@ -111,18 +120,26 @@ public class MusicListFragment extends Fragment {
 		}
 
 		public View getView(int position, View convertView, ViewGroup parent) {
-			if (convertView == null) convertView = View.inflate(getActivity(), R.layout.listview_item, null);
-			ImageView musicplaystate = (ImageView) convertView.findViewById(R.id.musicplaystate);
-			TextView musiclistPos = (TextView) convertView.findViewById(R.id.musiclistPos);
-			TextView musicTime = (TextView) convertView.findViewById(R.id.musicTime);
-			TextView musicName = (TextView) convertView.findViewById(R.id.musicName);
-			TextView musicAritst = (TextView) convertView.findViewById(R.id.musicAritst);
+			ViewHolder holder = null;
+			if (convertView == null) {
+				convertView = View.inflate(getActivity(), R.layout.listview_item, null);
+				holder = new ViewHolder();
+				holder.musicplaystate = (ImageView) convertView.findViewById(R.id.musicplaystate);
+				holder.musiclistPos = (TextView) convertView.findViewById(R.id.musiclistPos);
+				holder.musicTime = (TextView) convertView.findViewById(R.id.musicTime);
+				holder.musicName = (TextView) convertView.findViewById(R.id.musicName);
+				holder.musicAritst = (TextView) convertView.findViewById(R.id.musicAritst);
+				convertView.setTag(holder);
+			} else {
+				holder = (ViewHolder) convertView.getTag();
+			}
+
 			Music music = songList.get(position);
-			musicplaystate.setVisibility(position == MediaUtils.CURRENTPOS ? View.VISIBLE : View.INVISIBLE);
-			musiclistPos.setText(position + ".");
-			musicTime.setText(MediaUtils.formatTime(Integer.parseInt(music.getDuration())));
-			musicAritst.setText(music.getArtist());
-			musicName.setText(music.getTitle());
+			holder.musicplaystate.setVisibility(position == MediaUtils.CURRENTPOS ? View.VISIBLE : View.INVISIBLE);
+			holder.musiclistPos.setText(position + ".");
+			holder.musicTime.setText(MediaUtils.formatTime(Integer.parseInt(music.getDuration())));
+			holder.musicAritst.setText(music.getArtist());
+			holder.musicName.setText(music.getTitle());
 			return convertView;
 		}
 
@@ -133,10 +150,24 @@ public class MusicListFragment extends Fragment {
 		public long getItemId(int position) {
 			return 0;
 		}
-
 	}
 
+	private class ViewHolder {
+		ImageView musicplaystate;
+		TextView musiclistPos;
+		TextView musicTime;
+		TextView musicName;
+		TextView musicAritst;
+	}
+
+	/**
+	 * Activity中的回调方法，选择了新的音乐
+	 */
 	public interface ItemSelectedListener {
 		public void onItemSelectedListener(int position);
+	}
+
+	public void refreshDate() {
+		if (adapter != null) adapter.notifyDataSetChanged();
 	}
 }

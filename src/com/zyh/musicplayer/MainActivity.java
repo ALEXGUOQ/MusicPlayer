@@ -41,19 +41,17 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 	private Button btn_play, btn_stop, btn_pre, btn_next, btn_setting;
 
 	private void init() {
-
 		btn_play = (Button) findViewById(R.id.btn_play);
 		btn_stop = (Button) findViewById(R.id.btn_stop);
 		btn_pre = (Button) findViewById(R.id.btn_pre);
 		btn_next = (Button) findViewById(R.id.btn_next);
 		btn_setting = (Button) findViewById(R.id.btn_setting);
 		setListener();
-
-		if (MediaUtils.PLAYSTATE == ConstantValue.OPTION_PAUSE) {
-			btn_play.setText("暂停");
-		}
 		initViewPager();
 	}
+
+	private MusicListFragment musicListFragment;
+	private MusicPlayFragment musicPlayFragment;
 
 	private void initViewPager() {
 		titles = new ArrayList<>();
@@ -61,9 +59,12 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 		titles.add("正在播放");
 		getActionBar().setTitle(titles.get(0));
 
+		musicListFragment = new MusicListFragment();
+		musicPlayFragment = new MusicPlayFragment();
+
 		fragments = new ArrayList<>();
-		fragments.add(new MusicListFragment());
-		fragments.add(new MusicPlayFragment());
+		fragments.add(musicListFragment);
+		fragments.add(musicPlayFragment);
 
 		viewpager = (ViewPager) findViewById(R.id.viewpager);
 		adpater = new MyPagerAdapter(getSupportFragmentManager());
@@ -79,29 +80,63 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 			public void onPageScrollStateChanged(int arg0) {
 			}
 		});
+
+		// 初始化播放按钮状态
+		if (MediaUtils.PLAYSTATE == ConstantValue.OPTION_PLAY) btn_play.setText("暂停");
+		if (MediaUtils.PLAYSTATE == ConstantValue.OPTION_PAUSE) btn_play.setText("继续");
+		if (MediaUtils.PLAYSTATE == ConstantValue.OPTION_STOP) btn_play.setText("播放");
 	}
 
 	private void setListener() {
 		btn_play.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
+				System.out.println("当前music状态：" + MediaUtils.PLAYSTATE);
 				switch (MediaUtils.PLAYSTATE) {
-					case ConstantValue.OPTION_CONTINUE:
-					case ConstantValue.OPTION_PLAY:
-						startPlayService(null, ConstantValue.OPTION_PLAY);
-						btn_play.setText("播放");
+					case ConstantValue.OPTION_PLAY:// 当前有音乐正在播放
+						// 暂停音乐
+						startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_PAUSE);
+						btn_play.setText("继续");
 						break;
-					case ConstantValue.OPTION_PAUSE:
+					case ConstantValue.OPTION_STOP:// 当前无音乐播放
+						// 播放音乐
 						if (MediaUtils.CURRENTPOS >= 0 && MediaUtils.CURRENTPOS < MusicListFragment.songList.size()) {
 							startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_PLAY);
 						}
+						btn_play.setText("暂停");
+					case ConstantValue.OPTION_PAUSE:// 当前处于暂停状态
+						// 继续播放
+						startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_RESUME);
 						btn_play.setText("暂停");
 						break;
 				}
 			}
 		});
+		btn_stop.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_STOP);
+				btn_play.setText("播放");
+			}
+		});
+		btn_next.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				MediaUtils.CURRENTPOS = (MediaUtils.CURRENTPOS + 1) % MusicListFragment.songList.size();
+				startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_NEXT);
+				btn_play.setText("暂停");
+				musicListFragment.refreshDate();
+			}
+		});
+		btn_pre.setOnClickListener(new OnClickListener() {
+			public void onClick(View v) {
+				MediaUtils.CURRENTPOS = (MediaUtils.CURRENTPOS - 1) >= 0 ? (MediaUtils.CURRENTPOS - 1)
+						: MusicListFragment.songList.size() - 1;
+				startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_PRE);
+				btn_play.setText("暂停");
+				musicListFragment.refreshDate();
+			}
+		});
 	}
 
-	public void startPlayService(Music music, int option) {
+	private void startPlayService(Music music, int option) {
 		Intent i = new Intent(getApplicationContext(), MediaService.class);
 		if (music != null) i.putExtra("file", music.getPath());
 		i.putExtra("option", option);
@@ -142,7 +177,7 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 
 	@Override
 	public void onItemSelectedListener(int position) {
-		System.out.println("ppppp:" + position);
+		// System.out.println("ppppp:" + position);
 		if (MediaUtils.CURRENTPOS == position) return;
 
 		MediaUtils.CURRENTPOS = position;

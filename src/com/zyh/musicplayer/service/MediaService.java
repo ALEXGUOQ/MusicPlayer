@@ -37,25 +37,49 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 
 	@Override
 	public void onStart(Intent intent, int startId) {
-		int option = intent.getIntExtra("option", -1);
-		int progress = intent.getIntExtra("progress", -1);
-		if (progress != -1) this.position = progress;
-
+		int option = intent.getIntExtra("option", ConstantValue.OPTION_STOP);
+		file = intent.getStringExtra("file");
+		System.out.println("option:" + option);
 		switch (option) {
+			case ConstantValue.OPTION_NEXT:
+			case ConstantValue.OPTION_PRE:
 			case ConstantValue.OPTION_PLAY:
-				if (player.isPlaying()) player.stop();
-				file = intent.getStringExtra("file");
 				play(file);
+				MediaUtils.PLAYSTATE = ConstantValue.OPTION_PLAY;
 				break;
 			case ConstantValue.OPTION_PAUSE:
-				position = player.getCurrentPosition();
+				position = player.getCurrentPosition();// 保存进度
+				System.out.println("保存进度：" + position);
 				pause();
+				MediaUtils.PLAYSTATE = option;
 				break;
-
+			case ConstantValue.OPTION_RESUME:
+				player.seekTo(position);// 设置进度
+				System.out.println("设置进度：" + position);
+				resume(file);
+				MediaUtils.PLAYSTATE = ConstantValue.OPTION_PLAY;
+				break;
+			case ConstantValue.OPTION_STOP:
+				stop();
+				MediaUtils.PLAYSTATE = option;
+				break;
 			default:
 				break;
 		}
-		MediaUtils.PLAYSTATE = option;
+
+	}
+
+	private void resume(String path) {
+		player.start();
+	}
+
+	private void stop() {
+		if (player != null) {
+			player.stop();
+			player.release();
+			player = null;
+		}
+		position = 0;// 重置当前播放进度
 	}
 
 	private void pause() {
@@ -63,8 +87,9 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 	}
 
 	private void play(String path) {
-		if (player == null) player = new MediaPlayer();
-
+		if (player == null) player = new MediaPlayer();// 防止为空
+		if (player.isPlaying()) player.stop();// 如果正在播放，停止当前
+		// 播放一首新音乐
 		try {
 			player.reset();
 			player.setDataSource(path);
@@ -87,8 +112,8 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 
 	@Override
 	public void onCompletion(MediaPlayer mp) {
-		// TODO Auto-generated method stub
-
+		stop();
+		MediaUtils.PLAYSTATE = ConstantValue.OPTION_STOP;
 	}
 
 	@Override
@@ -97,4 +122,12 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 		return false;
 	}
 
+	@Override
+	public void onDestroy() {
+		if (player != null) {
+			player.release();
+			player = null;
+		}
+		super.onDestroy();
+	}
 }
