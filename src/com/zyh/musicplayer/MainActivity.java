@@ -5,6 +5,8 @@ import java.util.List;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
@@ -21,11 +23,13 @@ import com.zyh.musicplayer.domain.Music;
 import com.zyh.musicplayer.fragment.MusicListFragment;
 import com.zyh.musicplayer.fragment.MusicListFragment.ItemSelectedListener;
 import com.zyh.musicplayer.fragment.MusicPlayFragment;
+import com.zyh.musicplayer.fragment.MusicPlayFragment.OnSetProgressListener;
 import com.zyh.musicplayer.service.MediaService;
 import com.zyh.musicplayer.util.ConstantValue;
+import com.zyh.musicplayer.util.HandlerManager;
 import com.zyh.musicplayer.util.MediaUtils;
 
-public class MainActivity extends FragmentActivity implements ItemSelectedListener {
+public class MainActivity extends FragmentActivity implements ItemSelectedListener, OnSetProgressListener {
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +45,7 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 	private Button btn_play, btn_stop, btn_pre, btn_next, btn_setting;
 
 	private void init() {
+		HandlerManager.putHandler(handler);
 		btn_play = (Button) findViewById(R.id.btn_play);
 		btn_stop = (Button) findViewById(R.id.btn_stop);
 		btn_pre = (Button) findViewById(R.id.btn_pre);
@@ -87,6 +92,19 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 		if (MediaUtils.PLAYSTATE == ConstantValue.OPTION_STOP) btn_play.setText("播放");
 	}
 
+	private Handler handler = new Handler() {
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+				case ConstantValue.END:// 播放完成
+					// 默认顺序播放
+					nextSong();
+					break;
+				default:
+					break;
+			}
+		};
+	};
+
 	private void setListener() {
 		btn_play.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
@@ -119,21 +137,36 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 		});
 		btn_next.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
-				MediaUtils.CURRENTPOS = (MediaUtils.CURRENTPOS + 1) % MusicListFragment.songList.size();
-				startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_NEXT);
+				nextSong();
 				btn_play.setText("暂停");
-				musicListFragment.refreshDate();
 			}
+
 		});
 		btn_pre.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				MediaUtils.CURRENTPOS = (MediaUtils.CURRENTPOS - 1) >= 0 ? (MediaUtils.CURRENTPOS - 1)
 						: MusicListFragment.songList.size() - 1;
+				Music music = MusicListFragment.songList.get(MediaUtils.CURRENTPOS);
+				musicPlayFragment.setTotalTime(Integer.parseInt(music.getDuration()));
+				musicPlayFragment.setName(music.getTitle());
 				startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_PRE);
 				btn_play.setText("暂停");
 				musicListFragment.refreshDate();
 			}
 		});
+	}
+
+	/**
+	 * 下一首
+	 */
+	private void nextSong() {
+		System.out.println("下一首");
+		MediaUtils.CURRENTPOS = (MediaUtils.CURRENTPOS + 1) % MusicListFragment.songList.size();
+		musicListFragment.refreshDate();
+		Music music = MusicListFragment.songList.get(MediaUtils.CURRENTPOS);
+		musicPlayFragment.setTotalTime(Integer.parseInt(music.getDuration()));
+		musicPlayFragment.setName(music.getTitle());
+		startPlayService(music, ConstantValue.OPTION_NEXT);
 	}
 
 	private void startPlayService(Music music, int option) {
@@ -179,7 +212,8 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 	public void onItemSelectedListener(int position) {
 		// System.out.println("ppppp:" + position);
 		if (MediaUtils.CURRENTPOS == position) return;
-
+		musicPlayFragment.setTotalTime(Integer.parseInt(MusicListFragment.songList.get(MediaUtils.CURRENTPOS).getDuration()));
+		musicPlayFragment.setName(MusicListFragment.songList.get(MediaUtils.CURRENTPOS).getTitle());
 		MediaUtils.CURRENTPOS = position;
 		if (MediaUtils.CURRENTPOS >= 0 && MediaUtils.CURRENTPOS < MusicListFragment.songList.size()) {
 			startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_PLAY);
@@ -187,4 +221,14 @@ public class MainActivity extends FragmentActivity implements ItemSelectedListen
 		btn_play.setText("暂停");
 	}
 
+	/**
+	 * 进度条设置进度
+	 */
+
+	@Override
+	public void onsetProgress(int progress) {
+		MediaUtils.PROGRESS = progress;
+		startPlayService(MusicListFragment.songList.get(MediaUtils.CURRENTPOS), ConstantValue.OPTION_RESUME);
+		btn_play.setText("暂停");
+	}
 }

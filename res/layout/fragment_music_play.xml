@@ -5,6 +5,16 @@
     android:layout_height="fill_parent"
     android:orientation="vertical" >
 
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="fill_parent"
+        android:layout_height="50dp"
+        android:gravity="center"
+        android:text="1.童年"
+        android:textColor="@android:color/white"
+        android:textSize="20sp"
+        android:textStyle="bold" />
+
     <RelativeLayout
         android:id="@+id/setlayout"
         android:layout_width="fill_parent"
@@ -36,6 +46,10 @@
         android:gravity="center"
         android:orientation="vertical" >
 
+        <com.zyh.musicplayer.ui.LrcView
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent" />
+        <!--
         <com.zyh.musicplayer.widget.GalleryFlow
             android:id="@+id/imageGallery1"
             android:layout_width="fill_parent"
@@ -47,6 +61,7 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content" >
         </com.zyh.musicplayer.widget.GalleryFlow>
+        -->
     </LinearLayout>
 
     <LinearLayout
@@ -58,33 +73,29 @@
         android:orientation="horizontal" >
 
         <TextView
-            android:id="@+id/textViewCurTime"
+            android:id="@+id/tv_cur"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"
             android:text="00:00"
             android:textColor="@android:color/white"
             android:textStyle="bold" >
         </TextView>
 
         <SeekBar
-            android:id="@+id/seekBar"
+            android:id="@+id/sb"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/progress_buffering"
-            android:max="100"
+            android:max="1000"
             android:progressDrawable="@drawable/seekbar_style"
             android:thumb="@drawable/seekbar_thumb" >
         </SeekBar>
 
         <TextView
-            android:id="@+id/textViewTotalTime"
+            android:id="@+id/tv_total"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginLeft="10dp"
-            android:layout_marginRight="10dp"
             android:text="00:00"
             android:textColor="@android:color/white"
             android:textStyle="bold" >

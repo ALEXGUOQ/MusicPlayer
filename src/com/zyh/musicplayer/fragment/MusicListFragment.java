@@ -10,8 +10,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,7 +25,6 @@ import com.zyh.musicplayer.R;
 import com.zyh.musicplayer.domain.Music;
 import com.zyh.musicplayer.service.ScanSdFilesReceiver;
 import com.zyh.musicplayer.util.ConstantValue;
-import com.zyh.musicplayer.util.HandlerManager;
 import com.zyh.musicplayer.util.MediaUtils;
 import com.zyh.musicplayer.util.ServiceUtils;
 
@@ -43,12 +40,6 @@ public class MusicListFragment extends Fragment {
 	private ListView lv_music;
 	private MusicListAdapte adapter;
 	private ScanSdFilesReceiver scanReceiver;
-
-	private Handler handler = new Handler() {
-		public void handleMessage(Message msg) {
-
-		};
-	};
 
 	private ItemSelectedListener itemSelectedListener;
 
@@ -69,7 +60,6 @@ public class MusicListFragment extends Fragment {
 	}
 
 	private void init(View view) {
-		handler = HandlerManager.getHandler();
 		songList = new ArrayList<Music>();
 		lv_music = (ListView) view.findViewById(R.id.lv_music);
 		adapter = new MusicListAdapte();
@@ -137,7 +127,7 @@ public class MusicListFragment extends Fragment {
 			Music music = songList.get(position);
 			holder.musicplaystate.setVisibility(position == MediaUtils.CURRENTPOS ? View.VISIBLE : View.INVISIBLE);
 			holder.musiclistPos.setText(position + ".");
-			holder.musicTime.setText(MediaUtils.formatTime(Integer.parseInt(music.getDuration())));
+			holder.musicTime.setText(MediaUtils.formatTime(Integer.parseInt(music.getDuration()) / 1000));
 			holder.musicAritst.setText(music.getArtist());
 			holder.musicName.setText(music.getTitle());
 			return convertView;

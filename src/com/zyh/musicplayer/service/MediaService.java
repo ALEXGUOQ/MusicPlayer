@@ -9,6 +9,7 @@ import android.media.MediaPlayer.OnSeekCompleteListener;
 import android.os.IBinder;
 
 import com.zyh.musicplayer.util.ConstantValue;
+import com.zyh.musicplayer.util.HandlerManager;
 import com.zyh.musicplayer.util.MediaUtils;
 
 public class MediaService extends Service implements OnSeekCompleteListener, OnCompletionListener, OnErrorListener {
@@ -22,7 +23,6 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 
 	// private static ProgressTask task;
 	private String file;
-	private int position;
 
 	@Override
 	public void onCreate() {
@@ -48,14 +48,13 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 				MediaUtils.PLAYSTATE = ConstantValue.OPTION_PLAY;
 				break;
 			case ConstantValue.OPTION_PAUSE:
-				position = player.getCurrentPosition();// 保存进度
-				System.out.println("保存进度：" + position);
+				MediaUtils.PROGRESS = player.getCurrentPosition();// 保存进度
+				System.out.println("保存进度：" + MediaUtils.PROGRESS);
 				pause();
 				MediaUtils.PLAYSTATE = option;
 				break;
 			case ConstantValue.OPTION_RESUME:
-				player.seekTo(position);// 设置进度
-				System.out.println("设置进度：" + position);
+				System.out.println("设置进度：" + MediaUtils.PROGRESS);
 				resume(file);
 				MediaUtils.PLAYSTATE = ConstantValue.OPTION_PLAY;
 				break;
@@ -70,7 +69,8 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 	}
 
 	private void resume(String path) {
-		player.start();
+		if (MediaUtils.PROGRESS > 0 && MediaUtils.PROGRESS < player.getDuration()) player.seekTo(MediaUtils.PROGRESS);// 设置进度
+		if (player != null) player.start();
 	}
 
 	private void stop() {
@@ -79,11 +79,11 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 			player.release();
 			player = null;
 		}
-		position = 0;// 重置当前播放进度
+		MediaUtils.PROGRESS = 0;// 重置当前播放进度
 	}
 
 	private void pause() {
-		player.pause();
+		if (player != null && player.isPlaying()) player.pause();
 	}
 
 	private void play(String path) {
@@ -107,13 +107,13 @@ public class MediaService extends Service implements OnSeekCompleteListener, OnC
 
 	@Override
 	public void onSeekComplete(MediaPlayer mp) {
-
 	}
 
 	@Override
 	public void onCompletion(MediaPlayer mp) {
 		stop();
 		MediaUtils.PLAYSTATE = ConstantValue.OPTION_STOP;
+		HandlerManager.getHandler().sendEmptyMessage(ConstantValue.END);
 	}
 
 	@Override
